@@ -21,14 +21,6 @@ pub extern "C" fn kernel_main() -> ! {
 
     writer.write_str("Welcome to Hexium OS!\n");
 
-    writer.set_color(Color::Yellow, Color::Black);
-    writer.write_str("Sigma list:\n");
-    writer.set_color(Color::LightCyan, Color::Black);
-    writer.write_str("  - 67\n");
-    writer.write_str("  - So Sigma\n");
-    writer.write_str("  - Wowie\n");
-    writer.write_str("  - Bleh :P\n");
-
     loop {}
 }
 
