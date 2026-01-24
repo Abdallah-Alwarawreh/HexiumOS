@@ -95,4 +95,16 @@ impl Writer {
     pub fn set_color(&mut self, fg: Color, bg: Color) {
         self.color = color_code(fg, bg);
     }
+
+    pub fn backspace(&mut self) {
+        if self.col > 0 {
+            self.col -= 1;
+            let offset = (self.row * VGA_WIDTH + self.col) * 2;
+            unsafe {
+                let vga = VGA_BUFFER as *mut u8;
+                *vga.add(offset) = b' ';
+                *vga.add(offset + 1) = self.color;
+            }
+        }
+    }
 }

@@ -1,9 +1,12 @@
+
 SRC_DIR := src
 BIN_DIR := bin
 
 ASM_SRC := $(SRC_DIR)/boot.asm
 RUST_SRC := $(SRC_DIR)/kernel.rs
 LINKER_SCRIPT := $(SRC_DIR)/linker.ld
+SHIM_SRC := $(SRC_DIR)/shim.c
+SHIM_OBJ := $(BIN_DIR)/shim.o
 
 BOOT_OBJ := $(BIN_DIR)/boot.o
 KERNEL_OBJ := $(BIN_DIR)/kernel.o
@@ -31,8 +34,12 @@ $(BOOT_OBJ): $(ASM_SRC) | $(BIN_DIR)
 $(KERNEL_OBJ): $(RUST_SRC) | $(BIN_DIR)
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
-$(KERNEL_BIN): $(BOOT_OBJ) $(KERNEL_OBJ) $(LINKER_SCRIPT)
-	$(LD) $(LDFLAGS) -o $@ $(BOOT_OBJ) $(KERNEL_OBJ)
+
+$(SHIM_OBJ): $(SHIM_SRC) | $(BIN_DIR)
+	gcc -m32 -ffreestanding -c $< -o $@
+
+$(KERNEL_BIN): $(BOOT_OBJ) $(KERNEL_OBJ) $(SHIM_OBJ) $(LINKER_SCRIPT)
+	$(LD) $(LDFLAGS) -o $@ $(BOOT_OBJ) $(KERNEL_OBJ) $(SHIM_OBJ)
 
 .PHONY: run
 run: $(KERNEL_BIN)
