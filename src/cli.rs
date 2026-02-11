@@ -192,29 +192,6 @@ impl CLI {
             self.cmd_pwd(writer);
         } else if cmd == b"hexfetch" {
            HexFetch::fetch(writer);
-        } else if cmd == b"graphictest" {
-
-            unsafe {
-                    graphics::enter_mode_13h(); 
-        
-                    let graphics_test = graphics; 
-                    graphics_test.clear_screen(0); 
-                    for x in 0..320 {
-                        graphics_test.draw_pixel(x, 0, 15); // White line at y=0
-                    }
-                    graphics_test.draw_pixel(160, 100, 14); // Draw a yellow pixel in the center
-                    
-                    for y in 0..50 {
-                        for x in 0..50 {
-                         graphics_test.draw_pixel(x, y, 14);
-                       }
-                       }
-        
-                    loop {
-                        if idt::get_scancode().is_some() { break; }
-                    }
-                }
-            
         } else {
             writer.set_color(Color::Red, Color::Black);
             writer.write_str("Unknown command: ");
