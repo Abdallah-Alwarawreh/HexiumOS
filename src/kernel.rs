@@ -17,6 +17,12 @@ mod RAHH_data;
 mod filesystem;
 mod editor;
 
+mod hex_fetch;
+
+mod graphics;
+
+pub mod io;
+
 use vga_colors::{Color, color_code};
 use writer::Writer;
 use cli::CLI;

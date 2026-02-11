@@ -36,7 +36,7 @@ $(KERNEL_BIN): $(BOOT_OBJ) $(KERNEL_OBJ) $(LINKER_SCRIPT)
 
 .PHONY: run
 run: $(KERNEL_BIN)
-	qemu-system-i386 -kernel $(KERNEL_BIN)
+	qemu-system-i386 -kernel bin/myos.bin -m 512 -audiodev alsa,id=audio0 -machine pcspk-audiodev=audio0
 
 .PHONY: clean
 clean:
@@ -52,3 +52,16 @@ help:
 	@echo "make run    - Build and run in QEMU"
 	@echo "make clean  - Remove build artifacts"
 	@echo "make rebuild - Clean and rebuild"
+	
+	
+# New Variables
+ISO_DIR := iso_root
+MYOS_ISO := $(BIN_DIR)/myos.iso
+
+# ISO Generation Target
+iso: $(KERNEL_BIN)
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp $(KERNEL_BIN) $(ISO_DIR)/boot/myos.bin
+	cp grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
+	grub-mkrescue -o $(MYOS_ISO) $(ISO_DIR)
+	@echo "ISO created at $(MYOS_ISO)"

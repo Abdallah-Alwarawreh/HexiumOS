@@ -75,6 +75,14 @@ ld -m elf_i386 -T src/linker.ld -o bin/myos.bin bin/boot.o bin/kernel.o
 qemu-system-i386 -kernel bin/myos.bin
 ```
 
+### Build To ISO Steps
+
+```bash
+# Make iso
+make iso
+
+```
+
 ## Usage
 
 ### Available Commands
