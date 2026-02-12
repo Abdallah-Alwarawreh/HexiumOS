@@ -209,7 +209,7 @@ make run
 - Maximum file size: 4KB
 - No multitasking
 - No network support
-- Limited to VGA text mode (80x25)
+- Limited to VGA text mode (80x25) or limited color mode
 - No dynamic memory allocation
 
 ## Future Enhancements
