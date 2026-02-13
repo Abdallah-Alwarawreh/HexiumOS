@@ -3,6 +3,7 @@ use crate::keyboard::Keyboard;
 use crate::vga_colors::Color;
 use crate::idt;
 use crate::snake::SnakeGame;
+
 use crate::video_player::VideoPlayer;
 use crate::bad_apple_data::{FRAME_COUNT as BAD_APPLE_FRAME_COUNT, FRAME_WIDTH as BAD_APPLE_FRAME_WIDTH, FRAME_HEIGHT as BAD_APPLE_FRAME_HEIGHT, TARGET_FPS as BAD_APPLE_TARGET_FPS, FRAMES as BAD_APPLE_FRAMES};
 use crate::RAHH_data::{FRAME_COUNT as RAHH_FRAME_COUNT, FRAME_WIDTH as RAHH_FRAME_WIDTH, FRAME_HEIGHT as RAHH_FRAME_HEIGHT, TARGET_FPS as RAHH_TARGET_FPS, FRAMES as RAHH_FRAMES};
@@ -13,6 +14,8 @@ use crate::editor::Editor;
 use crate::hex_fetch::HexFetch;
 
 use crate::graphics::graphics;
+
+use crate::snake_graphics::SnakeGameGraphics;
 
 const MAX_COMMAND_LEN: usize = 80;
 
@@ -165,7 +168,7 @@ impl CLI {
                 writer.write_str("\nAvailable videos: badapple\n");
                 writer.set_color(Color::White, Color::Black);
             }
-        } else if cmd == b"snake" {
+        } else if cmd == b"snakeold" {
             let mut game = SnakeGame::new();
             game.run(writer);
             writer.clear();
@@ -192,7 +195,13 @@ impl CLI {
             self.cmd_pwd(writer);
         } else if cmd == b"hexfetch" {
            HexFetch::fetch(writer);
-        } else {
+        }  else if cmd == b"snake" {
+            let mut game = SnakeGameGraphics::new();
+            game.run();
+            writer.clear();
+            writer.write_str("Thanks for playing!\n");
+        } 
+        else {
             writer.set_color(Color::Red, Color::Black);
             writer.write_str("Unknown command: ");
             writer.write_bytes(cmd);

@@ -8,6 +8,7 @@ use core::arch::asm;
 
 use crate::io::outb; // Import the public function
 
+use font::FONT_8X8;
 
 
 // Helper for reading from ports
@@ -33,6 +34,21 @@ impl graphics {
             *pixel_ptr.add(offset) = color;
         }
     }
+    
+pub fn draw_char(&self, c: char, x: usize, y: usize, color: u8) {
+    let mut index = c as usize;
+    index -= 0;
+    if index >= FONT_8X8.len() { return; } // Safety check
+
+    let glyph = FONT_8X8[index];
+    for (row, row_data) in glyph.iter().enumerate() {
+        for col in 0..8 {
+            if (row_data >> (7 - col)) & 1 == 1 {
+                self.draw_pixel(x + col, y + row, color);
+            }
+        }
+    }
+}
 
     pub fn clear_screen(&self, color: u8) {
         for y in 0..SCREEN_HEIGHT {
