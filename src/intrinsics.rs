@@ -1,59 +1,67 @@
 use core::ffi::c_void;
 
 #[no_mangle]
-pub unsafe extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
-    let dest_u8 = dest as *mut u8;
-    let src_u8 = src as *const u8;
-    for i in 0..n {
-        *dest_u8.add(i) = *src_u8.add(i);
+pub unsafe extern "C" fn memcpy(x: *mut c_void, y: *const c_void, z: usize) -> *mut c_void {
+    let a = x as *mut u8;
+    let b = y as *const u8;
+    let mut i = 0;
+    while i < z {
+        *a.add(i) = *b.add(i);
+        i += 1;
     }
-    dest
+    x
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn memset(s: *mut c_void, c: i32, n: usize) -> *mut c_void {
-    let s_u8 = s as *mut u8;
-    let value = c as u8;
-    for i in 0..n {
-        *s_u8.add(i) = value;
+pub unsafe extern "C" fn memset(m: *mut c_void, v: i32, l: usize) -> *mut c_void {
+    let q = m as *mut u8;
+    let w = v as u8;
+    let mut i = 0;
+    loop {
+        if i >= l { break; }
+        *q.add(i) = w;
+        i += 1;
     }
-    s
+    m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn memcmp(s1: *const c_void, s2: *const c_void, n: usize) -> i32 {
-    let s1_u8 = s1 as *const u8;
-    let s2_u8 = s2 as *const u8;
-    for i in 0..n {
-        let a = *s1_u8.add(i);
-        let b = *s2_u8.add(i);
-        if a != b {
-            return a as i32 - b as i32;
-        }
+pub unsafe extern "C" fn memcmp(p: *const c_void, q: *const c_void, r: usize) -> i32 {
+    let s = p as *const u8;
+    let t = q as *const u8;
+    let mut u = 0;
+    while u < r {
+        let f = *s.add(u);
+        let g = *t.add(u);
+        if f != g { return f as i32 - g as i32 }
+        u += 1;
     }
     0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn bcmp(s1: *const c_void, s2: *const c_void, n: usize) -> i32 {
-    memcmp(s1, s2, n)
+pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, c: usize) -> i32 {
+    memcmp(a, b, c)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn memmove(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
-    let dest_u8 = dest as *mut u8;
-    let src_u8 = src as *const u8;
-    
-    if (dest_u8 as usize) < (src_u8 as usize) {
-        for i in 0..n {
-            *dest_u8.add(i) = *src_u8.add(i);
+pub unsafe extern "C" fn memmove(d: *mut c_void, s: *const c_void, n: usize) -> *mut c_void {
+    let x = d as *mut u8;
+    let y = s as *const u8;
+    let mut i = 0;
+    if (x as usize) < (y as usize) {
+        while i < n {
+            *x.add(i) = *y.add(i);
+            i += 1;
         }
     } else {
-        for i in (0..n).rev() {
-            *dest_u8.add(i) = *src_u8.add(i);
+        let mut j = n;
+        while j != 0 {
+            j -= 1;
+            *x.add(j) = *y.add(j);
         }
     }
-    dest
+    d
 }
 
 #[lang = "eh_personality"]
