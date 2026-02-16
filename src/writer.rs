@@ -1,148 +1,129 @@
+#![allow(clippy::needless_return, clippy::identity_op, clippy::many_single_char_names)]
 use crate::vga_colors::{Color, color_code};
 use core::arch::asm;
 
-const VGA_BUFFER: usize = 0xb8000;
-const VGA_WIDTH: usize = 80;
-const VGA_HEIGHT: usize = 25;
-
-const VGA_CTRL_PORT: u16 = 0x3D4;
-const VGA_DATA_PORT: u16 = 0x3D5;
+const V: usize = 0xb8000;
+const W: usize = 80;
+const H: usize = 25;
+const C: u16 = 0x3D4;
+const D: u16 = 0x3D5;
 
 pub struct Writer {
-    col: usize,
-    row: usize,
-    color: u8,
+    c: usize,
+    r: usize,
+    clr: u8,
+}
+
+#[inline(always)]
+unsafe fn ob(p: u16, v: u8) {
+    asm!("out dx, al", in("dx") p, in("al") v, options(nostack));
 }
 
 impl Writer {
-    pub const fn new(color: u8) -> Self {
-        Self { col: 0, row: 0, color }
+    pub const fn new(clr: u8) -> Self {
+        Writer { c: 0, r: 0, clr }
     }
 
-    fn update_cursor(&self) {
-        let pos = self.row * VGA_WIDTH + self.col;
+    #[inline(never)]
+    fn uc(&self) {
+        let p = self.r.wrapping_mul(W).wrapping_add(self.c);
         unsafe {
-            outb(VGA_CTRL_PORT, 0x0F);
-            outb(VGA_DATA_PORT, (pos & 0xFF) as u8);
-
-            outb(VGA_CTRL_PORT, 0x0E);
-            outb(VGA_DATA_PORT, ((pos >> 8) & 0xFF) as u8);
+            ob(C, 0x0F);
+            ob(D, (p & 0xFF) as u8);
+            ob(C, 0x0E);
+            ob(D, ((p >> 8) & 0xFF) as u8);
         }
     }
 
-    pub fn enable_cursor(&self) {
+    pub fn en_cur(&self) {
         unsafe {
-            outb(VGA_CTRL_PORT, 0x0A);
-            outb(VGA_DATA_PORT, 14);
-
-            outb(VGA_CTRL_PORT, 0x0B);
-            outb(VGA_DATA_PORT, 15);
+            ob(C, 0x0A);
+            ob(D, 14);
+            ob(C, 0x0B);
+            ob(D, 15);
         }
-        self.update_cursor();
+        self.uc();
     }
 
-    pub fn write_byte(&mut self, byte: u8) {
-        match byte {
-            b'\n' => self.newline(),
-            byte => {
-                if self.col >= VGA_WIDTH {
-                    self.newline();
-                }
-
-                let offset = (self.row * VGA_WIDTH + self.col) * 2;
+    pub fn wb(&mut self, b: u8) {
+        match b {
+            b'\n' => self.nl(),
+            _ => {
+                if self.c >= W { self.nl(); }
+                let off = (self.r * W + self.c) << 1;
                 unsafe {
-                    let vga = VGA_BUFFER as *mut u8;
-                    *vga.add(offset) = byte;
-                    *vga.add(offset + 1) = self.color;
+                    let ptr = V as *mut u8;
+                    *ptr.add(off) = b;
+                    *ptr.add(off + 1) = self.clr;
                 }
-                self.col += 1;
+                self.c += 1;
             }
         }
-        self.update_cursor();
+        self.uc();
     }
 
-    pub fn write_str(&mut self, s: &str) {
-        for byte in s.bytes() {
-            match byte {
-                0x20..=0x7e | b'\n' => self.write_byte(byte),
-                _ => self.write_byte(0xfe),
-            }
-        }
+    pub fn ws(&mut self, s: &str) {
+        s.bytes().for_each(|b| 
+            if (0x20..=0x7e).contains(&b) || b == b'\n' { self.wb(b); } 
+            else { self.wb(0xfe) }
+        );
     }
 
-    pub fn write_bytes(&mut self, s: &[u8]) {
-        for &byte in s {
-            match byte {
-                0x20..=0x7e | b'\n' => self.write_byte(byte),
-                _ => self.write_byte(0xfe),
-            }
+    pub fn wbs(&mut self, s: &[u8]) {
+        for &b in s {
+            if (0x20..=0x7e).contains(&b) || b == b'\n' { self.wb(b); }
+            else { self.wb(0xfe); }
         }
     }
 
-    fn newline(&mut self) {
-        self.col = 0;
-        if self.row < VGA_HEIGHT - 1 {
-            self.row += 1;
+    fn nl(&mut self) {
+        self.c = 0;
+        if self.r < H - 1 {
+            self.r += 1;
         } else {
-            self.scroll();
+            self.scr();
         }
     }
 
-    fn scroll(&mut self) {
+    fn scr(&mut self) {
         unsafe {
-            let vga = VGA_BUFFER as *mut u8;
-            for row in 1..VGA_HEIGHT {
-                for col in 0..VGA_WIDTH {
-                    let src = (row * VGA_WIDTH + col) * 2;
-                    let dst = ((row - 1) * VGA_WIDTH + col) * 2;
-                    *vga.add(dst) = *vga.add(src);
-                    *vga.add(dst + 1) = *vga.add(src + 1);
-                }
-            }
-            for col in 0..VGA_WIDTH {
-                let offset = ((VGA_HEIGHT - 1) * VGA_WIDTH + col) * 2;
-                *vga.add(offset) = b' ';
-                *vga.add(offset + 1) = self.color;
-            }
+            let ptr = V as *mut u8;
+            (1..H).for_each(|row| 
+                (0..W).for_each(|col| {
+                    let src = (row * W + col) << 1;
+                    let dst = ((row - 1) * W + col) << 1;
+                    *ptr.add(dst) = *ptr.add(src);
+                    *ptr.add(dst + 1) = *ptr.add(src + 1);
+                })
+            );
+            (0..W).for_each(|col| {
+                let off = ((H - 1) * W + col) << 1;
+                *ptr.add(off) = b' ';
+                *ptr.add(off + 1) = self.clr;
+            });
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clr(&mut self) {
         unsafe {
-            let vga = VGA_BUFFER as *mut u8;
-            for i in 0..(VGA_WIDTH * VGA_HEIGHT) {
-                *vga.add(i * 2) = b' ';
-                *vga.add(i * 2 + 1) = self.color;
-            }
-        }
-        self.col = 0;
-        self.row = 0;
+            let ptr = V as *mut u8;
+            (0..W*H).for_each(|i| {
+                *ptr.add(i<<1) = b' ';
+                *ptr.add((i<<1)+1) = self.clr;
+            });
+        } 
+        self.c = 0;
+        self.r = 0;
     }
 
-    pub fn set_color(&mut self, fg: Color, bg: Color) {
-        self.color = color_code(fg, bg);
+    pub fn scl(&mut self, fg: Color, bg: Color) {
+        self.clr = color_code(fg, bg);
     }
 
-    pub fn get_col(&self) -> usize {
-        self.col
-    }
+    pub fn gc(&self) -> usize { self.c }
+    pub fn gr(&self) -> usize { self.r }
 
-    pub fn get_row(&self) -> usize {
-        self.row
+    pub fn sp(&mut self, c: usize, r: usize) {
+        self.c = c; self.r = r; self.uc();
     }
-
-    pub fn set_position(&mut self, col: usize, row: usize) {
-        self.col = col;
-        self.row = row;
-        self.update_cursor();
-    }
-}
-
-unsafe fn outb(port: u16, value: u8) {
-    asm!(
-        "out dx, al",
-        in("dx") port,
-        in("al") value,
-        options(nostack)
-    );
 }
